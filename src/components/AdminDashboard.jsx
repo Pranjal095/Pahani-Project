@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
-import { BASE_URL } from "../config";
+
 const AdminDashboard = () => {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -12,7 +12,7 @@ const AdminDashboard = () => {
     setLoading(true);
     setError(false);
     axios
-      .get(`${BASE_URL}/admin/pahani-requests`)
+      .get(`${import.meta.env.VITE_BACKEND_URL}/admin/pahani-requests`)
       .then((r) => {
         setRequests(r.data);
         setLoading(false);
@@ -31,7 +31,7 @@ const AdminDashboard = () => {
   const markDone = async (id) => {
     setProcessingId(id);
     try {
-      await axios.post(`${BASE_URL}/admin/pahani-requests/process`, {
+      await axios.post(`${import.meta.env.VITE_BACKEND_URL}/admin/pahani-requests/process`, {
         id,
         action: "process",
       });

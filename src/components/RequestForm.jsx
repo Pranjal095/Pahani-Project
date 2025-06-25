@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
-import { BASE_URL } from "../config";
+
 const RequestForm = () => {
   const [district, setDistrict] = useState("");
   const [mandal, setMandal] = useState("");
@@ -17,7 +17,7 @@ const RequestForm = () => {
 
   useEffect(() => {
     axios
-      .get(`${BASE_URL}/location/districts`)
+      .get(`${import.meta.env.VITE_BACKEND_URL}/location/districts`)
       .then((res) => {
         console.log("Districts response:", res.data);
         setDistricts(res.data);
@@ -29,7 +29,7 @@ const RequestForm = () => {
 
   useEffect(() => {
     if (district) {
-      axios.get(`${BASE_URL}/location/mandals/${district}`).then((res) => {
+      axios.get(`${import.meta.env.VITE_BACKEND_URL}/location/mandals/${district}`).then((res) => {
         setMandals(res.data);
         setMandal("");
         setVillage("");
@@ -41,7 +41,7 @@ const RequestForm = () => {
   useEffect(() => {
     if (district && mandal) {
       axios
-        .get(`${BASE_URL}/location/villages/${district}/${mandal}`)
+        .get(`${import.meta.env.VITE_BACKEND_URL}/location/villages/${district}/${mandal}`)
         .then((res) => {
           setVillages(res.data);
           console.log(res.data);
@@ -55,7 +55,7 @@ const RequestForm = () => {
     setLoading(true);
     setStatus("");
     try {
-      await axios.post(`${BASE_URL}/pahani-request`, {
+      await axios.post(`${import.meta.env.VITE_BACKEND_URL}/pahani-request`, {
         district,
         mandal,
         village,
