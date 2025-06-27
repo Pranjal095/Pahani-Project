@@ -5,9 +5,13 @@ const AuthPage = ({ onLogin }) => {
   const [isLogin, setIsLogin] = useState(true);
   const [userType, setUserType] = useState("user");
   const [formData, setFormData] = useState({
+    name: "",
     email: "",
     password: "",
-    confirmPassword: ""
+    confirmPassword: "",
+    aadhaar_number: "",
+    patadar_passbook_number: "",
+    survey_number: ""
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -37,9 +41,28 @@ const AuthPage = ({ onLogin }) => {
       return false;
     }
 
-    if (!isLogin && formData.password !== formData.confirmPassword) {
-      setError("Passwords do not match");
-      return false;
+    if (!isLogin) {
+      if (!formData.name) {
+        setError("Name is required for registration");
+        return false;
+      }
+
+      if (formData.password !== formData.confirmPassword) {
+        setError("Passwords do not match");
+        return false;
+      }
+
+      if (userType === "user") {
+        if (!formData.aadhaar_number || !formData.patadar_passbook_number || !formData.survey_number) {
+          setError("All user fields are required for registration");
+          return false;
+        }
+        
+        if (formData.aadhaar_number.length !== 12 || !/^\d+$/.test(formData.aadhaar_number)) {
+          setError("Aadhaar number must be 12 digits");
+          return false;
+        }
+      }
     }
 
     return true;
@@ -58,10 +81,20 @@ const AuthPage = ({ onLogin }) => {
         ? `/login/${userType}`
         : `/register/${userType}`;
       
-      const requestData = {
+      let requestData = {
         email: formData.email,
         password: formData.password
       };
+
+      if (!isLogin) {
+        requestData.name = formData.name;
+        
+        if (userType === "user") {
+          requestData.aadhaar_number = formData.aadhaar_number;
+          requestData.patadar_passbook_number = formData.patadar_passbook_number;
+          requestData.survey_number = formData.survey_number;
+        }
+      }
 
       const response = await axios.post(
         `${import.meta.env.VITE_BACKEND_URL}${endpoint}`,
@@ -76,9 +109,13 @@ const AuthPage = ({ onLogin }) => {
       }
 
       setFormData({
+        name: "",
         email: "",
         password: "",
-        confirmPassword: ""
+        confirmPassword: "",
+        aadhaar_number: "",
+        patadar_passbook_number: "",
+        survey_number: ""
       });
 
     } catch (err) {
@@ -99,9 +136,13 @@ const AuthPage = ({ onLogin }) => {
     setIsLogin(!isLogin);
     setError("");
     setFormData({
+      name: "",
       email: "",
       password: "",
-      confirmPassword: ""
+      confirmPassword: "",
+      aadhaar_number: "",
+      patadar_passbook_number: "",
+      survey_number: ""
     });
   };
 
@@ -155,6 +196,24 @@ const AuthPage = ({ onLogin }) => {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
+            {!isLogin && (
+              <div>
+                <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
+                  Full Name
+                </label>
+                <input
+                  id="name"
+                  name="name"
+                  type="text"
+                  required
+                  value={formData.name}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-md shadow-sm text-gray-900 placeholder-gray-500 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
+                  placeholder="Enter your full name"
+                />
+              </div>
+            )}
+
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
                 Email Address
@@ -206,6 +265,59 @@ const AuthPage = ({ onLogin }) => {
                   placeholder="Confirm your password"
                 />
               </div>
+            )}
+
+            {!isLogin && userType === "user" && (
+              <>
+                <div>
+                  <label htmlFor="aadhaar_number" className="block text-sm font-medium text-gray-700 mb-2">
+                    Aadhaar Number
+                  </label>
+                  <input
+                    id="aadhaar_number"
+                    name="aadhaar_number"
+                    type="text"
+                    required
+                    value={formData.aadhaar_number}
+                    onChange={handleInputChange}
+                    maxLength="12"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-md shadow-sm text-gray-900 placeholder-gray-500 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
+                    placeholder="Enter 12-digit Aadhaar number"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="patadar_passbook_number" className="block text-sm font-medium text-gray-700 mb-2">
+                    Patadar Passbook Number
+                  </label>
+                  <input
+                    id="patadar_passbook_number"
+                    name="patadar_passbook_number"
+                    type="text"
+                    required
+                    value={formData.patadar_passbook_number}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-md shadow-sm text-gray-900 placeholder-gray-500 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
+                    placeholder="Enter passbook number"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="survey_number" className="block text-sm font-medium text-gray-700 mb-2">
+                    Survey Number
+                  </label>
+                  <input
+                    id="survey_number"
+                    name="survey_number"
+                    type="text"
+                    required
+                    value={formData.survey_number}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-md shadow-sm text-gray-900 placeholder-gray-500 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
+                    placeholder="Enter survey number"
+                  />
+                </div>
+              </>
             )}
 
             {error && (
