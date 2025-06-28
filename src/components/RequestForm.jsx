@@ -14,17 +14,16 @@ const RequestForm = () => {
   const [districts, setDistricts] = useState([]);
   const [mandals, setMandals] = useState([]);
   const [villages, setVillages] = useState([]);
+  const [userRequests, setUserRequests] = useState([]);
+  const [liveStatuses, setLiveStatuses] = useState({});
+
+  const token = localStorage.getItem("access_token");
 
   useEffect(() => {
     axios
       .get(`${import.meta.env.VITE_BACKEND_URL}/location/districts`)
-      .then((res) => {
-        console.log("Districts response:", res.data);
-        setDistricts(res.data);
-      })
-      .catch((err) => {
-        console.error("Failed to fetch districts:", err);
-      });
+      .then((res) => setDistricts(res.data))
+      .catch((err) => console.error("Failed to fetch districts:", err));
   }, []);
 
   useEffect(() => {
@@ -50,12 +49,31 @@ const RequestForm = () => {
         )
         .then((res) => {
           setVillages(res.data);
-          console.log(res.data);
           setVillage("");
         });
     }
   }, [mandal]);
-  const token = localStorage.getItem("access_token");
+
+  const fetchUserRequests = async () => {
+    try {
+      const res = await axios.get(
+        `${import.meta.env.VITE_BACKEND_URL}/user/my-pahani-requests`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      setUserRequests(res.data);
+    } catch (err) {
+      console.error("Error fetching your requests", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchUserRequests();
+  }, []);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -78,6 +96,7 @@ const RequestForm = () => {
           },
         }
       );
+
       setStatus("success");
       setDistrict("");
       setMandal("");
@@ -85,6 +104,7 @@ const RequestForm = () => {
       setArea("");
       setYearFrom("");
       setYearTo("");
+      await fetchUserRequests();
     } catch {
       setStatus("error");
     } finally {
@@ -92,17 +112,30 @@ const RequestForm = () => {
     }
   };
 
+  const fetchStatusForRequest = async (requestId) => {
+    try {
+      const res = await axios.get(
+        `${
+          import.meta.env.VITE_BACKEND_URL
+        }/user/pahani-request-status/${requestId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      setLiveStatuses((prev) => ({ ...prev, [requestId]: res.data }));
+    } catch (err) {
+      console.error("Failed to fetch status", err);
+    }
+  };
+
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="max-w-2xl mx-auto px-4 py-6">
       <div className="bg-white shadow-lg rounded-lg p-6 mb-6">
         <h1 className="text-2xl font-bold text-gray-800 mb-6">
           Request Pahani Document
         </h1>
-        <p className="text-gray-600 mb-6">
-          Pahani records contain land ownership details. Fill out this form to
-          request specific pages from the pahani archives for your reference.
-        </p>
-
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
             <label className="block text-gray-700 font-medium mb-2">
@@ -112,7 +145,7 @@ const RequestForm = () => {
               required
               value={district}
               onChange={(e) => setDistrict(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 bg-gray-50 text-gray-800 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-2 border border-gray-300 bg-gray-50 text-gray-800 rounded-md"
               disabled={loading}
             >
               <option value="">— Select District —</option>
@@ -132,7 +165,7 @@ const RequestForm = () => {
               required
               value={mandal}
               onChange={(e) => setMandal(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 bg-gray-50 text-gray-800 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-2 border border-gray-300 bg-gray-50 text-gray-800 rounded-md"
               disabled={!district || loading}
             >
               <option value="">— Select Mandal —</option>
@@ -152,7 +185,7 @@ const RequestForm = () => {
               required
               value={village}
               onChange={(e) => setVillage(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 bg-gray-50 text-gray-800 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-2 border border-gray-300 bg-gray-50 text-gray-800 rounded-md"
               disabled={!mandal || loading}
             >
               <option value="">— Select Village —</option>
@@ -174,7 +207,7 @@ const RequestForm = () => {
                 required
                 value={yearFrom}
                 onChange={(e) => setYearFrom(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 bg-gray-50 text-gray-800 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-2 border border-gray-300 bg-gray-50 text-gray-800 rounded-md"
                 disabled={loading}
               />
             </div>
@@ -188,7 +221,7 @@ const RequestForm = () => {
                 min={yearFrom}
                 value={yearTo}
                 onChange={(e) => setYearTo(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 bg-gray-50 text-gray-800 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-2 border border-gray-300 bg-gray-50 text-gray-800 rounded-md"
                 disabled={loading}
               />
             </div>
@@ -197,7 +230,7 @@ const RequestForm = () => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md shadow transition"
+            className="w-full px-6 py-3 bg-black hover:bg-gray-900 text-white font-medium rounded-md"
           >
             {loading ? "Submitting..." : "Submit Request"}
           </button>
@@ -214,6 +247,51 @@ const RequestForm = () => {
           Error submitting request. Try again.
         </div>
       )}
+
+      {/* User Request History */}
+      <div className="bg-white shadow rounded-lg p-6">
+        <h2 className="text-xl font-bold mb-4 text-gray-800">Your Requests</h2>
+        {userRequests.length === 0 ? (
+          <p className="text-gray-600">No previous requests found.</p>
+        ) : (
+          <div className="space-y-4">
+            {userRequests.map((req) => (
+              <div
+                key={req.id}
+                className="p-4 border rounded-md shadow-sm bg-gray-50"
+              >
+                <div className="font-medium text-gray-800">
+                  {req.district} / {req.mandal} / {req.village}
+                </div>
+                <div className="text-sm text-gray-700 mt-1">
+                  <span className="mr-4">
+                    Dates: {req.from_date} to {req.to_date}
+                  </span>
+                  <span>
+                    Status:{" "}
+                    {req.processed
+                      ? req.is_paid
+                        ? "✅ Completed"
+                        : "📄 Ready for Payment"
+                      : "⏳ Pending Upload"}
+                  </span>
+                </div>
+                <button
+                  onClick={() => fetchStatusForRequest(req.id)}
+                  className="mt-2 text-sm text-blue-600 underline"
+                >
+                  Check Status
+                </button>
+                {liveStatuses[req.id] && (
+                  <div className="mt-2 text-sm text-gray-700">
+                    → {liveStatuses[req.id].message}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 };
