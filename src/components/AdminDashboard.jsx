@@ -1,12 +1,14 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
+import { toast } from "react-toastify";
 
 const AdminDashboard = () => {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
-  const [processingId, setProcessingId] = useState(null);
   const [filter, setFilter] = useState("all");
+  const [uploadingId, setUploadingId] = useState(null);
+  const [selectedFiles, setSelectedFiles] = useState({});
 
   const fetchRequests = () => {
     setLoading(true);
@@ -28,21 +30,43 @@ const AdminDashboard = () => {
     fetchRequests();
   }, []);
 
-  const markDone = async (id) => {
-    setProcessingId(id);
+  const formatDate = (timestamp) => {
+    const date = new Date(timestamp);
+    return new Intl.DateTimeFormat("en-IN", {
+      dateStyle: "medium",
+      timeStyle: "short",
+    }).format(date);
+  };
+
+  const uploadPDF = async (id) => {
+    const file = selectedFiles[id];
+    if (!file || file.type !== "application/pdf") {
+      toast.error("Please select a valid PDF file.");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    setUploadingId(id);
     try {
-      await axios.post(`${import.meta.env.VITE_BACKEND_URL}/admin/pahani-requests/process`, {
-        id,
-        action: "process",
-      });
-      setRequests((r) =>
-        r.map((x) => (x.id === id ? { ...x, processed: true } : x))
+      await axios.post(
+        `${import.meta.env.VITE_BACKEND_URL}/admin/upload-pahani-pdf/${id}`,
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+            Authorization: `Bearer ${localStorage.getItem("access_token")}`, // adjust if using context
+          },
+        }
       );
+      toast.success("PDF uploaded successfully!");
+      fetchRequests();
     } catch (err) {
       console.error(err);
-      alert("Failed to mark as processed. Please try again.");
+      toast.error("Upload failed.");
     } finally {
-      setProcessingId(null);
+      setUploadingId(null);
     }
   };
 
@@ -55,14 +79,6 @@ const AdminDashboard = () => {
 
   const pendingCount = requests.filter((r) => !r.processed).length;
 
-  const formatDate = (timestamp) => {
-    const date = new Date(timestamp);
-    return new Intl.DateTimeFormat("en-IN", {
-      dateStyle: "medium",
-      timeStyle: "short",
-    }).format(date);
-  };
-
   return (
     <div className="max-w-4xl mx-auto">
       <div className="bg-white rounded-lg shadow-lg p-6">
@@ -72,51 +88,14 @@ const AdminDashboard = () => {
             onClick={fetchRequests}
             className="px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 font-medium rounded-md border border-blue-200 flex items-center gap-2 transition-colors duration-200"
           >
-            <svg
-              className="w-4 h-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-              />
-            </svg>
-            Refresh
+            🔄 Refresh
           </button>
         </div>
 
         {loading ? (
-          <div className="flex justify-center my-12">
-            <svg
-              className="animate-spin h-8 w-8 text-blue-600"
-              viewBox="0 0 24 24"
-            >
-              <circle
-                className="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                strokeWidth="4"
-                fill="none"
-              ></circle>
-              <path
-                className="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-              ></path>
-            </svg>
-          </div>
+          <div className="text-center py-12">Loading...</div>
         ) : error ? (
-          <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded mb-6">
-            <p className="text-red-800">
-              Failed to load requests. Please try refreshing.
-            </p>
-          </div>
+          <div className="text-red-600 py-6">Error loading requests.</div>
         ) : (
           <>
             <div className="flex items-center justify-between mb-5">
@@ -128,38 +107,26 @@ const AdminDashboard = () => {
                   Processed: {requests.length - pendingCount}
                 </span>
               </div>
-
               <div className="inline-flex rounded-md overflow-hidden border border-gray-200 bg-gray-50">
-                <button
-                  onClick={() => setFilter("all")}
-                  className={`px-4 py-2 text-sm font-medium transition-colors duration-200 ${
-                    filter === "all"
-                      ? "bg-white text-blue-600 shadow-sm border border-blue-100"
-                      : "text-gray-600 hover:bg-white"
-                  }`}
-                >
-                  All
-                </button>
-                <button
-                  onClick={() => setFilter("pending")}
-                  className={`px-4 py-2 text-sm font-medium transition-colors duration-200 ${
-                    filter === "pending"
-                      ? "bg-white text-yellow-600 shadow-sm border border-yellow-100"
-                      : "text-gray-600 hover:bg-white"
-                  }`}
-                >
-                  Pending
-                </button>
-                <button
-                  onClick={() => setFilter("processed")}
-                  className={`px-4 py-2 text-sm font-medium transition-colors duration-200 ${
-                    filter === "processed"
-                      ? "bg-white text-green-600 shadow-sm border border-green-100"
-                      : "text-gray-600 hover:bg-white"
-                  }`}
-                >
-                  Processed
-                </button>
+                {["all", "pending", "processed"].map((f) => (
+                  <button
+                    key={f}
+                    onClick={() => setFilter(f)}
+                    className={`px-4 py-2 text-sm font-medium transition-colors duration-200 ${
+                      filter === f
+                        ? `bg-white text-${
+                            f === "pending"
+                              ? "yellow"
+                              : f === "processed"
+                              ? "green"
+                              : "blue"
+                          }-600 shadow-sm border`
+                        : "text-gray-600 hover:bg-white"
+                    }`}
+                  >
+                    {f.charAt(0).toUpperCase() + f.slice(1)}
+                  </button>
+                ))}
               </div>
             </div>
 
@@ -176,63 +143,63 @@ const AdminDashboard = () => {
                       r.processed ? "bg-gray-50" : "bg-white"
                     }`}
                   >
-                    <div className="flex justify-between">
+                    <div className="flex justify-between items-start">
                       <div>
-                        <h3 className="font-semibold text-lg flex items-center text-gray-900">
+                        <h3 className="font-semibold text-lg text-gray-900">
                           {r.district} / {r.mandal} / {r.village}
                           {r.processed && (
                             <span className="ml-2 text-xs bg-green-50 text-green-700 border border-green-200 py-1 px-2 rounded font-medium">
-                              Processed
+                              Completed
                             </span>
                           )}
                         </h3>
-                        <div className="text-gray-800 text-sm mt-1 font-medium">
+                        <div className="text-sm text-gray-800 font-medium mt-1">
                           <span className="mr-4">
                             Dates: {r.from_date} to {r.to_date}
                           </span>
-                          <span>Request Date: {formatDate(r.timestamp)}</span>
+                          <span>Requested: {formatDate(r.timestamp)}</span>
                         </div>
                       </div>
-                      <button
-                        disabled={r.processed || processingId === r.id}
-                        onClick={() => markDone(r.id)}
-                        className={`px-4 py-2 rounded-md font-medium transition-all duration-200 ${
-                          r.processed
-                            ? "bg-gray-100 text-gray-500 cursor-not-allowed border border-gray-200"
-                            : processingId === r.id
-                            ? "bg-green-100 text-green-700 border border-green-200"
-                            : "bg-green-50 hover:bg-green-100 text-green-700 border border-green-200 hover:border-green-300"
-                        }`}
-                      >
-                        {processingId === r.id ? (
-                          <span className="flex items-center">
-                            <svg
-                              className="animate-spin h-4 w-4 mr-2"
-                              viewBox="0 0 24 24"
-                            >
-                              <circle
-                                className="opacity-25"
-                                cx="12"
-                                cy="12"
-                                r="10"
-                                stroke="currentColor"
-                                strokeWidth="4"
-                                fill="none"
-                              ></circle>
-                              <path
-                                className="opacity-75"
-                                fill="currentColor"
-                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                              ></path>
-                            </svg>
-                            Processing...
-                          </span>
-                        ) : r.processed ? (
-                          "Completed"
-                        ) : (
-                          "Mark Collected"
-                        )}
-                      </button>
+
+                      {!r.processed && (
+                        <div className="flex flex-col items-end space-y-2">
+                          <input
+                            type="file"
+                            accept="application/pdf"
+                            onChange={(e) =>
+                              setSelectedFiles((prev) => ({
+                                ...prev,
+                                [r.id]: e.target.files[0],
+                              }))
+                            }
+                            className="block w-52 text-sm text-gray-700 border rounded px-2 py-1"
+                          />
+                          <button
+                            onClick={() => uploadPDF(r.id)}
+                            disabled={uploadingId === r.id}
+                            className={`px-4 py-1.5 rounded-md text-sm font-medium ${
+                              uploadingId === r.id
+                                ? "bg-green-100 text-green-700"
+                                : "bg-green-50 hover:bg-green-100 text-green-700"
+                            } border border-green-200 transition`}
+                          >
+                            {uploadingId === r.id
+                              ? "Uploading..."
+                              : "Upload PDF"}
+                          </button>
+                        </div>
+                      )}
+
+                      {r.processed && r.pdf_s3_url && (
+                        <a
+                          href={r.pdf_s3_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm text-blue-600 underline"
+                        >
+                          View PDF
+                        </a>
+                      )}
                     </div>
                   </div>
                 ))}

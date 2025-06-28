@@ -29,19 +29,25 @@ const RequestForm = () => {
 
   useEffect(() => {
     if (district) {
-      axios.get(`${import.meta.env.VITE_BACKEND_URL}/location/mandals/${district}`).then((res) => {
-        setMandals(res.data);
-        setMandal("");
-        setVillage("");
-        setVillages([]);
-      });
+      axios
+        .get(`${import.meta.env.VITE_BACKEND_URL}/location/mandals/${district}`)
+        .then((res) => {
+          setMandals(res.data);
+          setMandal("");
+          setVillage("");
+          setVillages([]);
+        });
     }
   }, [district]);
 
   useEffect(() => {
     if (district && mandal) {
       axios
-        .get(`${import.meta.env.VITE_BACKEND_URL}/location/villages/${district}/${mandal}`)
+        .get(
+          `${
+            import.meta.env.VITE_BACKEND_URL
+          }/location/villages/${district}/${mandal}`
+        )
         .then((res) => {
           setVillages(res.data);
           console.log(res.data);
@@ -49,21 +55,29 @@ const RequestForm = () => {
         });
     }
   }, [mandal]);
-
+  const token = localStorage.getItem("access_token");
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setStatus("");
     try {
-      await axios.post(`${import.meta.env.VITE_BACKEND_URL}/pahani-request`, {
-        district,
-        mandal,
-        village,
-        from_date: yearFrom,
-        to_date: yearTo,
-        area,
-        timestamp: Date.now(),
-      });
+      await axios.post(
+        `${import.meta.env.VITE_BACKEND_URL}/pahani-request`,
+        {
+          district,
+          mandal,
+          village,
+          from_date: yearFrom,
+          to_date: yearTo,
+          area,
+          timestamp: Date.now(),
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
       setStatus("success");
       setDistrict("");
       setMandal("");
