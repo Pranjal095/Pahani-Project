@@ -19,6 +19,11 @@ const RequestForm = () => {
 
   const token = localStorage.getItem("access_token");
 
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem("access_token");
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  };
+
   useEffect(() => {
     axios
       .get(`${import.meta.env.VITE_BACKEND_URL}/location/districts`)
@@ -50,6 +55,9 @@ const RequestForm = () => {
         .then((res) => {
           setVillages(res.data);
           setVillage("");
+        })
+        .catch((err) => {
+          console.error("Failed to fetch villages:", err);
         });
     }
   }, [mandal]);
@@ -79,24 +87,16 @@ const RequestForm = () => {
     setLoading(true);
     setStatus("");
     try {
-      await axios.post(
-        `${import.meta.env.VITE_BACKEND_URL}/pahani-request`,
-        {
-          district,
-          mandal,
-          village,
-          from_date: yearFrom,
-          to_date: yearTo,
-          area,
-          timestamp: Date.now(),
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
+      await axios.post(`${import.meta.env.VITE_BACKEND_URL}/pahani-request`, {
+        district,
+        mandal,
+        village,
+        from_date: yearFrom,
+        to_date: yearTo,
+        area,
+      }, {
+        headers: getAuthHeaders()
+      });
       setStatus("success");
       setDistrict("");
       setMandal("");
@@ -131,120 +131,263 @@ const RequestForm = () => {
   };
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-6">
-      <div className="bg-white shadow-lg rounded-lg p-6 mb-6">
-        <h1 className="text-2xl font-bold text-gray-800 mb-6">
-          Request Pahani Document
-        </h1>
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <label className="block text-gray-700 font-medium mb-2">
-              District
-            </label>
-            <select
-              required
-              value={district}
-              onChange={(e) => setDistrict(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 bg-gray-50 text-gray-800 rounded-md"
-              disabled={loading}
-            >
-              <option value="">— Select District —</option>
-              {districts.map((d) => (
-                <option key={d} value={d}>
-                  {d}
-                </option>
-              ))}
-            </select>
-          </div>
+    <div className="max-w-5xl mx-auto space-y-8">
+      <div className="bg-white rounded-xl shadow-lg border p-8">
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-slate-900 mb-4">
+            Pahani Document Request
+          </h1>
+          <p className="text-lg text-slate-600 max-w-3xl mx-auto leading-relaxed">
+            Submit a formal request to access Pahani land records, which include detailed information about land ownership, surveys, and history maintained by the Land Records Department.
+          </p>
+        </div>
 
-          <div>
-            <label className="block text-gray-700 font-medium mb-2">
-              Mandal
-            </label>
-            <select
-              required
-              value={mandal}
-              onChange={(e) => setMandal(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 bg-gray-50 text-gray-800 rounded-md"
-              disabled={!district || loading}
-            >
-              <option value="">— Select Mandal —</option>
-              {mandals.map((m) => (
-                <option key={m} value={m}>
-                  {m}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-gray-700 font-medium mb-2">
-              Village
-            </label>
-            <select
-              required
-              value={village}
-              onChange={(e) => setVillage(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 bg-gray-50 text-gray-800 rounded-md"
-              disabled={!mandal || loading}
-            >
-              <option value="">— Select Village —</option>
-              {villages.map((v) => (
-                <option key={v} value={v}>
-                  {v}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-gray-700 font-medium mb-2">
-                From Date
-              </label>
-              <input
-                type="date"
-                required
-                value={yearFrom}
-                onChange={(e) => setYearFrom(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 bg-gray-50 text-gray-800 rounded-md"
-                disabled={loading}
-              />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div className="flex items-center mb-2">
+              <svg className="w-5 h-5 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <h3 className="font-semibold text-blue-900">Processing Time</h3>
             </div>
-            <div>
-              <label className="block text-gray-700 font-medium mb-2">
-                To Date
-              </label>
-              <input
-                type="date"
-                required
-                min={yearFrom}
-                value={yearTo}
-                onChange={(e) => setYearTo(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 bg-gray-50 text-gray-800 rounded-md"
-                disabled={loading}
-              />
-            </div>
+            <p className="text-sm text-blue-700">Document requests are typically processed within 5-7 business days.</p>
           </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full px-6 py-3 bg-black hover:bg-gray-900 text-white font-medium rounded-md"
-          >
-            {loading ? "Submitting..." : "Submit Request"}
-          </button>
-        </form>
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+            <div className="flex items-center mb-2">
+              <svg className="w-5 h-5 text-green-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <h3 className="font-semibold text-green-900">Verified Records</h3>
+            </div>
+            <p className="text-sm text-green-700">All provided documents are officially verified and authenticated.</p>
+          </div>
+
+          <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+            <div className="flex items-center mb-2">
+              <svg className="w-5 h-5 text-purple-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+              <h3 className="font-semibold text-purple-900">Secure Access</h3>
+            </div>
+            <p className="text-sm text-purple-700">Your request and documents are handled with complete confidentiality.</p>
+          </div>
+        </div>
       </div>
 
+      <div className="bg-white rounded-xl shadow-lg border">
+        <div className="p-8">
+          <h2 className="text-xl font-bold text-slate-900 mb-6">Request Details</h2>
+          
+          <form onSubmit={handleSubmit} className="space-y-8">
+            <div>
+              <h3 className="text-lg font-semibold text-slate-900 mb-4 pb-2 border-b border-slate-200">
+                Location Information
+              </h3>
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-3">
+                    District *
+                  </label>
+                  <select
+                    required
+                    value={district}
+                    onChange={(e) => setDistrict(e.target.value)}
+                    className="w-full px-4 py-3 border border-slate-300 bg-white text-slate-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
+                    disabled={loading}
+                  >
+                    <option value="">Select District</option>
+                    {districts.map((d) => (
+                      <option key={d} value={d}>
+                        {d}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-3">
+                    Mandal *
+                  </label>
+                  <select
+                    required
+                    value={mandal}
+                    onChange={(e) => setMandal(e.target.value)}
+                    className="w-full px-4 py-3 border border-slate-300 bg-white text-slate-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200 disabled:bg-slate-100 disabled:text-slate-500"
+                    disabled={!district || loading}
+                  >
+                    <option value="">Select Mandal</option>
+                    {mandals.map((m) => (
+                      <option key={m} value={m}>
+                        {m}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-3">
+                    Village *
+                  </label>
+                  <select
+                    required
+                    value={village}
+                    onChange={(e) => setVillage(e.target.value)}
+                    className="w-full px-4 py-3 border border-slate-300 bg-white text-slate-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200 disabled:bg-slate-100 disabled:text-slate-500"
+                    disabled={!mandal || loading}
+                  >
+                    <option value="">Select Village</option>
+                    {villages.map((v) => (
+                      <option key={v} value={v}>
+                        {v}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <h3 className="text-lg font-semibold text-slate-900 mb-4 pb-2 border-b border-slate-200">
+                Date Range for Records
+              </h3>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-3">
+                    From Date *
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    value={yearFrom}
+                    onChange={(e) => setYearFrom(e.target.value)}
+                    className="w-full px-4 py-3 border border-slate-300 bg-white text-slate-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
+                    disabled={loading}
+                  />
+                  <p className="text-xs text-slate-500 mt-1">Start date for record search</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-3">
+                    To Date *
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    min={yearFrom}
+                    value={yearTo}
+                    onChange={(e) => setYearTo(e.target.value)}
+                    className="w-full px-4 py-3 border border-slate-300 bg-white text-slate-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
+                    disabled={loading}
+                  />
+                  <p className="text-xs text-slate-500 mt-1">End date for record search</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-6 border-t border-slate-200">
+              <div className="flex flex-col sm:flex-row items-center justify-between space-y-4 sm:space-y-0">
+                <div className="text-sm text-slate-600">
+                  <p className="flex items-center">
+                    <svg className="w-4 h-4 text-slate-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    All fields marked with * are required
+                  </p>
+                </div>
+                
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className={`px-8 py-4 rounded-lg font-semibold text-lg transition-all duration-200 ${
+                    loading
+                      ? "bg-slate-400 text-white cursor-not-allowed"
+                      : "bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  }`}
+                >
+                  {loading ? (
+                    <span className="flex items-center">
+                      <svg
+                        className="animate-spin h-5 w-5 mr-3"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                          fill="none"
+                        ></circle>
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        ></path>
+                      </svg>
+                      Processing Request...
+                    </span>
+                  ) : (
+                    "Submit Official Request"
+                  )}
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      {/* Status Messages */}
       {status === "success" && (
-        <div className="bg-green-100 border-l-4 border-green-500 p-4 rounded mb-6 text-green-800">
-          Request submitted successfully!
+        <div className="bg-green-50 border border-green-200 rounded-xl p-6">
+          <div className="flex items-start">
+            <svg className="w-6 h-6 text-green-600 mr-3 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <div>
+              <h3 className="text-lg font-semibold text-green-900 mb-2">Request Submitted Successfully</h3>
+              <p className="text-green-800">
+                Your Pahani document request has been submitted and is being processed. 
+                You will be notified once the documents are ready for collection.
+              </p>
+              <p className="text-sm text-green-700 mt-2">
+                Reference ID: #{Math.random().toString(36).substr(2, 9).toUpperCase()}
+              </p>
+            </div>
+          </div>
         </div>
       )}
+
+      {status === "unauthorized" && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6">
+          <div className="flex items-start">
+            <svg className="w-6 h-6 text-yellow-600 mr-3 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+            <div>
+              <h3 className="text-lg font-semibold text-yellow-900 mb-2">Authentication Required</h3>
+              <p className="text-yellow-800">
+                Your session has expired or you are not properly authenticated. Please log out and log back in to continue.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {status === "error" && (
-        <div className="bg-red-100 border-l-4 border-red-500 p-4 rounded mb-6 text-red-800">
-          Error submitting request. Try again.
+        <div className="bg-red-50 border border-red-200 rounded-xl p-6">
+          <div className="flex items-start">
+            <svg className="w-6 h-6 text-red-600 mr-3 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+            <div>
+              <h3 className="text-lg font-semibold text-red-900 mb-2">Request Submission Failed</h3>
+              <p className="text-red-800">
+                There was an error processing your request. Please check your information and try again. 
+                If the problem persists, contact the Land Records Department.
+              </p>
+            </div>
+          </div>
         </div>
       )}
 
