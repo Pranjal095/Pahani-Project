@@ -5,8 +5,13 @@ const AuthPage = ({ onLogin }) => {
   const [isLogin, setIsLogin] = useState(true);
   const [userType, setUserType] = useState("user");
   const [formData, setFormData] = useState({
+    name: "",
+    aadhaar_number: "",
+    patadar_passbook_number: "",
     phone_number: "",
     otp: "",
+    email: "",
+    password: "",
   });
   const [otpSent, setOtpSent] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -82,30 +87,92 @@ const AuthPage = ({ onLogin }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!/^\d{10}$/.test(formData.phone_number) || formData.otp.length !== 6) {
-      setError("Enter valid phone and OTP");
-      return;
-    }
-
     setLoading(true);
+    setError("");
+  
     try {
-      const res = await axios.post(
-        `${import.meta.env.VITE_BACKEND_URL}/login/user`,
-        {
-          phone_number: formData.phone_number,
-          otp: formData.otp,
+      if (userType === "admin") {
+        if (!formData.email || !formData.password) {
+          setError("Email and password required");
+          setLoading(false);
+          return;
         }
-      );
-
-      localStorage.setItem("access_token", res.data.access_token);
-      localStorage.setItem("user", JSON.stringify(res.data.user));
-      if (onLogin) onLogin(res.data.user);
+  
+        if (isLogin) {
+          // 🔐 Admin Login
+          const res = await axios.post(
+            `${import.meta.env.VITE_BACKEND_URL}/login/admin`,
+            {
+              email: formData.email,
+              password: formData.password,
+            }
+          );
+          localStorage.setItem("access_token", res.data.access_token);
+          localStorage.setItem("user", JSON.stringify(res.data.user));
+          if (onLogin) onLogin(res.data.user);
+        } else {
+          // 📝 Admin Registration
+          await axios.post(
+            `${import.meta.env.VITE_BACKEND_URL}/register/admin`,
+            {
+              email: formData.email,
+              password: formData.password,
+              name: formData.name || "Admin",
+            }
+          );
+          setIsLogin(true); // After signup, switch to login mode
+          setError("Account created. Please sign in.");
+        }
+      } else {
+        // 👤 Citizen
+        if (!isLogin) {
+          // 📝 Citizen Registration
+          await axios.post(
+            `${import.meta.env.VITE_BACKEND_URL}/register/user`,
+            {
+              name: formData.name,
+              phone_number: formData.phone_number,
+              aadhaar_number: formData.aadhaar_number,
+              patadar_passbook_number: formData.patadar_passbook_number,
+            }
+          );
+          setIsLogin(true);
+          setError("Account created. Please login using OTP.");
+          setOtpSent(false);
+          setFormData((prev) => ({ ...prev, otp: "" }));
+          setLoading(false);
+          return;
+        }
+  
+        // 👤 Citizen OTP Login
+        if (
+          !/^\d{10}$/.test(formData.phone_number) ||
+          formData.otp.length !== 6
+        ) {
+          setError("Enter valid phone and OTP");
+          setLoading(false);
+          return;
+        }
+  
+        const res = await axios.post(
+          `${import.meta.env.VITE_BACKEND_URL}/login/user`,
+          {
+            phone_number: formData.phone_number,
+            otp: formData.otp,
+          }
+        );
+        localStorage.setItem("access_token", res.data.access_token);
+        localStorage.setItem("user", JSON.stringify(res.data.user));
+        if (onLogin) onLogin(res.data.user);
+      }
     } catch (err) {
-      setError("Invalid OTP or phone number.");
+      console.error(err);
+      setError("Something went wrong. Please try again.");
     } finally {
       setLoading(false);
     }
   };
+  
 
   const toggleMode = () => {
     setIsLogin(!isLogin);
@@ -131,7 +198,7 @@ const AuthPage = ({ onLogin }) => {
           <p className="text-sm text-slate-500 mt-1">Pahani Digital Portal</p>
         </div>
       </div>
-
+  
       <div className="flex items-center justify-center px-4 py-12">
         <div className="w-full max-w-2xl">
           <div className="bg-white rounded-xl shadow-xl border p-8 lg:p-10">
@@ -145,7 +212,7 @@ const AuthPage = ({ onLogin }) => {
                   : "Register to access your land records"}
               </p>
             </div>
-
+  
             {/* Account Type Selection */}
             <div className="mb-8">
               <label className="block text-lg font-semibold text-slate-700 mb-4 text-center">
@@ -178,7 +245,7 @@ const AuthPage = ({ onLogin }) => {
                 </button>
               </div>
             </div>
-
+  
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Admin fields */}
               {userType === "admin" && (
@@ -221,63 +288,112 @@ const AuthPage = ({ onLogin }) => {
                   </div>
                 </>
               )}
-
+  
               {/* Citizen fields */}
               {userType === "user" && (
                 <>
+                  {!isLogin && (
+                    <>
+                      <div>
+                        <label className="block text-sm font-semibold text-slate-700 mb-2">
+                          Full Name *
+                        </label>
+                        <input
+                          type="text"
+                          name="name"
+                          required
+                          value={formData.name}
+                          onChange={handleInputChange}
+                          className="w-full px-4 py-3 border border-gray-300 text-black placeholder-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          placeholder="Enter your name"
+                        />
+                      </div>
+  
+                      <div>
+                        <label className="block text-sm font-semibold text-slate-700 mb-2">
+                          Aadhaar Number *
+                        </label>
+                        <input
+                          type="text"
+                          name="aadhaar_number"
+                          required
+                          value={formData.aadhaar_number}
+                          maxLength={12}
+                          onChange={handleInputChange}
+                          className="w-full px-4 py-3 border border-gray-300 text-black placeholder-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          placeholder="12-digit Aadhaar number"
+                        />
+                      </div>
+  
+                      <div>
+                        <label className="block text-sm font-semibold text-slate-700 mb-2">
+                          Patadar Passbook Number *
+                        </label>
+                        <input
+                          type="text"
+                          name="patadar_passbook_number"
+                          required
+                          value={formData.patadar_passbook_number}
+                          onChange={handleInputChange}
+                          className="w-full px-4 py-3 border border-gray-300 text-black placeholder-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          placeholder="Patadar Passbook Number"
+                        />
+                      </div>
+                    </>
+                  )}
+  
                   <div>
                     <label className="block text-sm font-semibold text-slate-700 mb-2">
                       Phone Number *
                     </label>
                     <input
-                      type="tel"
+                      type="text"
                       name="phone_number"
-                      maxLength={10}
                       required
+                      maxLength={10}
                       value={formData.phone_number}
                       onChange={handleInputChange}
                       className="w-full px-4 py-3 border border-gray-300 text-black placeholder-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="Enter 10-digit phone"
+                      placeholder="10-digit mobile number"
                     />
                   </div>
-
-                  {!otpSent ? (
-                    <button
-                      type="button"
-                      onClick={handleSendOtp}
-                      className="bg-blue-600 text-white py-2 px-4 rounded-lg w-full"
-                    >
-                      Get OTP
-                    </button>
-                  ) : (
+  
+                  {isLogin && (
                     <>
                       <div>
                         <label className="block text-sm font-semibold text-slate-700 mb-2">
-                          Enter OTP *
+                          OTP *
                         </label>
                         <input
                           type="text"
                           name="otp"
-                          maxLength={6}
                           required
+                          maxLength={6}
                           value={formData.otp}
                           onChange={handleInputChange}
                           className="w-full px-4 py-3 border border-gray-300 text-black placeholder-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          placeholder="Enter OTP"
+                          placeholder="Enter 6-digit OTP"
                         />
                       </div>
-                      <button
-                        type="submit"
-                        disabled={loading}
-                        className="bg-green-600 text-white py-2 px-4 rounded-lg w-full"
-                      >
-                        {loading ? "Verifying..." : "Login"}
-                      </button>
+                      <div className="text-right">
+                        <button
+                          type="button"
+                          onClick={handleSendOtp}
+                          disabled={loading || otpSent}
+                          className={`text-sm font-medium ${
+                            otpSent
+                              ? "text-gray-400"
+                              : "text-blue-600 hover:underline"
+                          }`}
+                        >
+                          {otpSent ? "OTP Sent" : "Send OTP"}
+                        </button>
+                      </div>
                     </>
                   )}
                 </>
               )}
-
+  
               {/* Error Display */}
               {error && (
                 <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-800 text-sm">
@@ -288,7 +404,7 @@ const AuthPage = ({ onLogin }) => {
                   )}
                 </div>
               )}
-
+  
               {/* Submit Button */}
               <button
                 type="submit"
@@ -308,7 +424,7 @@ const AuthPage = ({ onLogin }) => {
                   : "Create Account"}
               </button>
             </form>
-
+  
             <div className="mt-6 text-center">
               <p className="text-slate-600">
                 {isLogin
@@ -325,12 +441,13 @@ const AuthPage = ({ onLogin }) => {
           </div>
         </div>
       </div>
-
+  
       <footer className="bg-white border-t text-center py-4 text-sm text-slate-500">
         &copy; {new Date().getFullYear()} Government of Telangana
       </footer>
     </div>
   );
+  
 };
 
 export default AuthPage;
