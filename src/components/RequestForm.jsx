@@ -5,12 +5,12 @@ const RequestForm = () => {
   const [district, setDistrict] = useState("");
   const [mandal, setMandal] = useState("");
   const [village, setVillage] = useState("");
-  const [area, setArea] = useState("");
+
   const [yearFrom, setYearFrom] = useState("");
   const [yearTo, setYearTo] = useState("");
   const [status, setStatus] = useState("");
   const [loading, setLoading] = useState(false);
-
+  const [surveyNumber, setSurveyNumber] = useState("");
   const [districts, setDistricts] = useState([]);
   const [mandals, setMandals] = useState([]);
   const [villages, setVillages] = useState([]);
@@ -87,23 +87,30 @@ const RequestForm = () => {
     setLoading(true);
     setStatus("");
     try {
-      await axios.post(`${import.meta.env.VITE_BACKEND_URL}/pahani-request`, {
-        district,
-        mandal,
-        village,
-        from_date: yearFrom,
-        to_date: yearTo,
-        area,
-      }, {
-        headers: getAuthHeaders()
-      });
+      await axios.post(
+        `${import.meta.env.VITE_BACKEND_URL}/pahani-request`,
+        {
+          district,
+          mandal,
+          village,
+          survey_number: surveyNumber,
+          from_year: yearFrom,
+          to_year: yearTo,
+         
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
       setStatus("success");
       setDistrict("");
       setMandal("");
       setVillage("");
-      setArea("");
       setYearFrom("");
       setYearTo("");
+      setSurveyNumber("");
       await fetchUserRequests();
     } catch {
       setStatus("error");
@@ -138,47 +145,89 @@ const RequestForm = () => {
             Pahani Document Request
           </h1>
           <p className="text-lg text-slate-600 max-w-3xl mx-auto leading-relaxed">
-            Submit a formal request to access Pahani land records, which include detailed information about land ownership, surveys, and history maintained by the Land Records Department.
+            Submit a formal request to access Pahani land records, which include
+            detailed information about land ownership, surveys, and history
+            maintained by the Land Records Department.
           </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
             <div className="flex items-center mb-2">
-              <svg className="w-5 h-5 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              <svg
+                className="w-5 h-5 text-blue-600 mr-2"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
               </svg>
               <h3 className="font-semibold text-blue-900">Processing Time</h3>
             </div>
-            <p className="text-sm text-blue-700">Document requests are typically processed within 5-7 business days.</p>
+            <p className="text-sm text-blue-700">
+              Document requests are typically processed within 5-7 business
+              days.
+            </p>
           </div>
 
           <div className="bg-green-50 border border-green-200 rounded-lg p-4">
             <div className="flex items-center mb-2">
-              <svg className="w-5 h-5 text-green-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              <svg
+                className="w-5 h-5 text-green-600 mr-2"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
               </svg>
               <h3 className="font-semibold text-green-900">Verified Records</h3>
             </div>
-            <p className="text-sm text-green-700">All provided documents are officially verified and authenticated.</p>
+            <p className="text-sm text-green-700">
+              All provided documents are officially verified and authenticated.
+            </p>
           </div>
 
           <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
             <div className="flex items-center mb-2">
-              <svg className="w-5 h-5 text-purple-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              <svg
+                className="w-5 h-5 text-purple-600 mr-2"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                />
               </svg>
               <h3 className="font-semibold text-purple-900">Secure Access</h3>
             </div>
-            <p className="text-sm text-purple-700">Your request and documents are handled with complete confidentiality.</p>
+            <p className="text-sm text-purple-700">
+              Your request and documents are handled with complete
+              confidentiality.
+            </p>
           </div>
         </div>
       </div>
 
       <div className="bg-white rounded-xl shadow-lg border">
         <div className="p-8">
-          <h2 className="text-xl font-bold text-slate-900 mb-6">Request Details</h2>
-          
+          <h2 className="text-xl font-bold text-slate-900 mb-6">
+            Request Details
+          </h2>
+
           <form onSubmit={handleSubmit} className="space-y-8">
             <div>
               <h3 className="text-lg font-semibold text-slate-900 mb-4 pb-2 border-b border-slate-200">
@@ -257,44 +306,75 @@ const RequestForm = () => {
                     From Date *
                   </label>
                   <input
-                    type="date"
+                    type="number"
                     required
                     value={yearFrom}
                     onChange={(e) => setYearFrom(e.target.value)}
-                    className="w-full px-4 py-3 border border-slate-300 bg-white text-slate-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
+                    placeholder="e.g., 2010"
+                    min="1900"
+                    max={new Date().getFullYear()}
+                    className="w-full px-4 py-3 border border-slate-300 bg-gray-50 text-slate-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
                     disabled={loading}
                   />
-                  <p className="text-xs text-slate-500 mt-1">Start date for record search</p>
+                  <p className="text-xs text-slate-500 mt-1">
+                    Start date for record search
+                  </p>
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 mb-3">
                     To Date *
                   </label>
                   <input
-                    type="date"
+                    type="number"
                     required
                     min={yearFrom}
                     value={yearTo}
                     onChange={(e) => setYearTo(e.target.value)}
-                    className="w-full px-4 py-3 border border-slate-300 bg-white text-slate-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
+                    placeholder="e.g., 2023"
+                    className="w-full px-4 py-3 border border-slate-300 bg-gray-50 text-slate-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
                     disabled={loading}
                   />
-                  <p className="text-xs text-slate-500 mt-1">End date for record search</p>
+                  <p className="text-xs text-slate-500 mt-1">
+                    End date for record search
+                  </p>
                 </div>
               </div>
             </div>
-
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-3">
+                Survey Number *
+              </label>
+              <input
+                type="text"
+                required
+                value={surveyNumber}
+                onChange={(e) => setSurveyNumber(e.target.value)}
+                className="w-full px-4 py-3 border border-slate-300 bg-white text-slate-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
+                disabled={loading}
+                placeholder="e.g., 123/A"
+              />
+            </div>
             <div className="pt-6 border-t border-slate-200">
               <div className="flex flex-col sm:flex-row items-center justify-between space-y-4 sm:space-y-0">
                 <div className="text-sm text-slate-600">
                   <p className="flex items-center">
-                    <svg className="w-4 h-4 text-slate-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    <svg
+                      className="w-4 h-4 text-slate-500 mr-2"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
                     </svg>
                     All fields marked with * are required
                   </p>
                 </div>
-                
+
                 <button
                   type="submit"
                   disabled={loading}
@@ -341,17 +421,31 @@ const RequestForm = () => {
       {status === "success" && (
         <div className="bg-green-50 border border-green-200 rounded-xl p-6">
           <div className="flex items-start">
-            <svg className="w-6 h-6 text-green-600 mr-3 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            <svg
+              className="w-6 h-6 text-green-600 mr-3 flex-shrink-0 mt-0.5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
             </svg>
             <div>
-              <h3 className="text-lg font-semibold text-green-900 mb-2">Request Submitted Successfully</h3>
+              <h3 className="text-lg font-semibold text-green-900 mb-2">
+                Request Submitted Successfully
+              </h3>
               <p className="text-green-800">
-                Your Pahani document request has been submitted and is being processed. 
-                You will be notified once the documents are ready for collection.
+                Your Pahani document request has been submitted and is being
+                processed. You will be notified once the documents are ready for
+                collection.
               </p>
               <p className="text-sm text-green-700 mt-2">
-                Reference ID: #{Math.random().toString(36).substr(2, 9).toUpperCase()}
+                Reference ID: #
+                {Math.random().toString(36).substr(2, 9).toUpperCase()}
               </p>
             </div>
           </div>
@@ -361,13 +455,26 @@ const RequestForm = () => {
       {status === "unauthorized" && (
         <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6">
           <div className="flex items-start">
-            <svg className="w-6 h-6 text-yellow-600 mr-3 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+            <svg
+              className="w-6 h-6 text-yellow-600 mr-3 flex-shrink-0 mt-0.5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"
+              />
             </svg>
             <div>
-              <h3 className="text-lg font-semibold text-yellow-900 mb-2">Authentication Required</h3>
+              <h3 className="text-lg font-semibold text-yellow-900 mb-2">
+                Authentication Required
+              </h3>
               <p className="text-yellow-800">
-                Your session has expired or you are not properly authenticated. Please log out and log back in to continue.
+                Your session has expired or you are not properly authenticated.
+                Please log out and log back in to continue.
               </p>
             </div>
           </div>
@@ -377,14 +484,27 @@ const RequestForm = () => {
       {status === "error" && (
         <div className="bg-red-50 border border-red-200 rounded-xl p-6">
           <div className="flex items-start">
-            <svg className="w-6 h-6 text-red-600 mr-3 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+            <svg
+              className="w-6 h-6 text-red-600 mr-3 flex-shrink-0 mt-0.5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"
+              />
             </svg>
             <div>
-              <h3 className="text-lg font-semibold text-red-900 mb-2">Request Submission Failed</h3>
+              <h3 className="text-lg font-semibold text-red-900 mb-2">
+                Request Submission Failed
+              </h3>
               <p className="text-red-800">
-                There was an error processing your request. Please check your information and try again. 
-                If the problem persists, contact the Land Records Department.
+                There was an error processing your request. Please check your
+                information and try again. If the problem persists, contact the
+                Land Records Department.
               </p>
             </div>
           </div>
