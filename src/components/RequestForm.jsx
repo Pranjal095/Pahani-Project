@@ -5,7 +5,6 @@ const RequestForm = () => {
   const [district, setDistrict] = useState("");
   const [mandal, setMandal] = useState("");
   const [village, setVillage] = useState("");
-
   const [yearFrom, setYearFrom] = useState("");
   const [yearTo, setYearTo] = useState("");
   const [status, setStatus] = useState("");
@@ -16,6 +15,12 @@ const RequestForm = () => {
   const [villages, setVillages] = useState([]);
   const [userRequests, setUserRequests] = useState([]);
   const [liveStatuses, setLiveStatuses] = useState({});
+  
+  // Payment modal state
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [selectedRequest, setSelectedRequest] = useState(null);
+  const [transactionId, setTransactionId] = useState("");
+  const [processingPayment, setProcessingPayment] = useState(false);
 
   const token = localStorage.getItem("access_token");
 
@@ -106,7 +111,6 @@ const RequestForm = () => {
           survey_number: surveyNumber,
           from_year: yearFrom,
           to_year: yearTo,
-         
         },
         {
           headers: {
@@ -144,6 +148,50 @@ const RequestForm = () => {
       setLiveStatuses((prev) => ({ ...prev, [requestId]: res.data }));
     } catch (err) {
       console.error("Failed to fetch status", err);
+    }
+  };
+
+  const calculatePaymentAmount = (fromYear, toYear) => {
+    const yearDifference = parseInt(toYear) - parseInt(fromYear) + 1;
+    return yearDifference * 10;
+  };
+
+  const handleCollectRecords = (request) => {
+    setSelectedRequest(request);
+    setShowPaymentModal(true);
+  };
+
+  const handlePaymentSubmit = async () => {
+    if (!transactionId.trim()) {
+      alert("Please enter transaction ID");
+      return;
+    }
+
+    setProcessingPayment(true);
+    try {
+      await axios.post(
+        `${import.meta.env.VITE_BACKEND_URL}/user/confirm-payment`,
+        {
+          request_id: selectedRequest.id,
+          transaction_id: transactionId,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      
+      alert("Payment confirmed! Your documents will be available shortly.");
+      setShowPaymentModal(false);
+      setTransactionId("");
+      setSelectedRequest(null);
+      await fetchUserRequests();
+    } catch (err) {
+      console.error("Payment confirmation failed:", err);
+      alert("Payment confirmation failed. Please try again.");
+    } finally {
+      setProcessingPayment(false);
     }
   };
 
@@ -548,20 +596,36 @@ const RequestForm = () => {
                 </div>
                 <div className="text-sm text-gray-700 mt-1">
                   <span className="mr-4">
+                    Survey No: {req.survey_number}
+                  </span>
+                  <span className="mr-4">
                     Years: {req.from_year} to {req.to_year}
+                  </span>
+                  <span className="mr-4">
+                    Amount: ₹{calculatePaymentAmount(req.from_year, req.to_year)}
                   </span>
                   <span>
                     Status:{" "}
                     {req.processed
                       ? req.is_paid
-                        ? "✅ Completed"
-                        : "📄 Ready for Payment"
-                      : "⏳ Pending Upload"}
+                        ? "Completed"
+                        : "Ready for Payment"
+                      : "Pending Approval"}
                   </span>
                 </div>
+                
+                {req.processed && !req.is_paid && (
+                  <button
+                    onClick={() => handleCollectRecords(req)}
+                    className="mt-2 px-4 py-2 bg-green-600 text-white text-sm rounded hover:bg-green-700"
+                  >
+                    Collect Records
+                  </button>
+                )}
+
                 <button
                   onClick={() => fetchStatusForRequest(req.id)}
-                  className="mt-2 text-sm text-blue-600 underline"
+                  className="mt-2 ml-2 text-sm text-blue-600 underline"
                 >
                   Check Status
                 </button>
@@ -575,6 +639,76 @@ const RequestForm = () => {
           </div>
         )}
       </div>
+
+      {/* Payment Modal */}
+      {showPaymentModal && selectedRequest && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4">
+            <h3 className="text-xl font-bold mb-4">Complete Payment</h3>
+            
+            <div className="mb-6">
+              <p className="text-sm text-gray-600 mb-2">
+                <strong>Request:</strong> {selectedRequest.district} / {selectedRequest.mandal} / {selectedRequest.village}
+              </p>
+              <p className="text-sm text-gray-600 mb-2">
+                <strong>Survey Number:</strong> {selectedRequest.survey_number}
+              </p>
+              <p className="text-sm text-gray-600 mb-4">
+                <strong>Amount:</strong> ₹{calculatePaymentAmount(selectedRequest.from_year, selectedRequest.to_year)}
+              </p>
+              
+              <div className="text-center mb-4">
+                <p className="text-sm text-gray-600 mb-2">Scan QR Code to Pay:</p>
+                <img 
+                  src="/qr.svg" 
+                  alt="Payment QR Code" 
+                  className="mx-auto w-48 h-48 border rounded"
+                />
+                <p className="text-xs text-gray-500 mt-2">
+                  UPI ID: government@upi
+                </p>
+              </div>
+            </div>
+
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Transaction ID *
+              </label>
+              <input
+                type="text"
+                value={transactionId}
+                onChange={(e) => setTransactionId(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Enter transaction ID"
+              />
+            </div>
+
+            <div className="flex space-x-3">
+              <button
+                onClick={handlePaymentSubmit}
+                disabled={processingPayment}
+                className={`flex-1 py-2 px-4 rounded ${
+                  processingPayment
+                    ? "bg-gray-400 cursor-not-allowed"
+                    : "bg-blue-600 hover:bg-blue-700"
+                } text-white font-medium`}
+              >
+                {processingPayment ? "Processing..." : "Confirm Payment"}
+              </button>
+              <button
+                onClick={() => {
+                  setShowPaymentModal(false);
+                  setTransactionId("");
+                  setSelectedRequest(null);
+                }}
+                className="flex-1 py-2 px-4 border border-gray-300 rounded text-gray-700 hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

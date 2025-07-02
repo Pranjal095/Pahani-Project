@@ -9,7 +9,8 @@ const AdminDashboard = () => {
   const [filter, setFilter] = useState("all");
   const [uploadingId, setUploadingId] = useState(null);
   const [selectedFiles, setSelectedFiles] = useState({});
-  const [processingId, setprocessingId] = useState();
+  const [processingId, setProcessingId] = useState();
+
   const getAuthHeaders = () => {
     const token = localStorage.getItem("access_token");
     return token ? { Authorization: `Bearer ${token}` } : {};
@@ -43,6 +44,26 @@ const AdminDashboard = () => {
       dateStyle: "medium",
       timeStyle: "short",
     }).format(date);
+  };
+
+  const markDone = async (requestId) => {
+    setProcessingId(requestId);
+    try {
+      await axios.post(
+        `${import.meta.env.VITE_BACKEND_URL}/admin/approve-request/${requestId}`,
+        {},
+        {
+          headers: getAuthHeaders(),
+        }
+      );
+      toast.success("Request approved successfully!");
+      fetchRequests();
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to approve request.");
+    } finally {
+      setProcessingId(null);
+    }
   };
 
   const uploadPDF = async (id) => {
@@ -393,18 +414,26 @@ const AdminDashboard = () => {
                               }`}
                             >
                               {request.processed
-                                ? "Completed"
+                                ? "Approved"
                                 : "Pending Review"}
                             </span>
                           </div>
 
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
+                            <div>
+                              <span className="font-medium text-slate-700">
+                                Survey Number:
+                              </span>
+                              <p className="text-slate-600">
+                                {request.survey_number}
+                              </p>
+                            </div>
                             <div>
                               <span className="font-medium text-slate-700">
                                 Date Range:
                               </span>
                               <p className="text-slate-600">
-                                {request.from_date} to {request.to_date}
+                                {request.from_year} to {request.to_year}
                               </p>
                             </div>
                             <div>
@@ -478,7 +507,7 @@ const AdminDashboard = () => {
                                     d="M5 13l4 4L19 7"
                                   />
                                 </svg>
-                                Document Ready
+                                Approved
                               </>
                             ) : (
                               <>
@@ -495,7 +524,7 @@ const AdminDashboard = () => {
                                     d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
                                   />
                                 </svg>
-                                Mark as Processed
+                                Approve Request
                               </>
                             )}
                           </button>
