@@ -10,6 +10,8 @@ const AdminDashboard = () => {
   const [uploadingId, setUploadingId] = useState(null);
   const [selectedFiles, setSelectedFiles] = useState({});
   const [processingId, setProcessingId] = useState();
+  const [pendingPayments, setPendingPayments] = useState([]);
+  const [verifyingPaymentId, setVerifyingPaymentId] = useState(null);
 
   const getAuthHeaders = () => {
     const token = localStorage.getItem("access_token");
@@ -34,8 +36,44 @@ const AdminDashboard = () => {
       });
   };
 
+  const fetchPendingPayments = async () => {
+    try {
+      const response = await axios.get(
+        `${import.meta.env.VITE_BACKEND_URL}/admin/pending-payments`,
+        {
+          headers: getAuthHeaders(),
+        }
+      );
+      setPendingPayments(response.data);
+    } catch (err) {
+      console.error("Failed to fetch pending payments:", err);
+    }
+  };
+
+  const verifyPayment = async (paymentId, approve = true) => {
+    setVerifyingPaymentId(paymentId);
+    try {
+      await axios.post(
+        `${import.meta.env.VITE_BACKEND_URL}/admin/verify-payment/${paymentId}`,
+        { approve },
+        {
+          headers: getAuthHeaders(),
+        }
+      );
+      toast.success(`Payment ${approve ? 'approved' : 'rejected'} successfully!`);
+      await fetchPendingPayments();
+      await fetchRequests();
+    } catch (err) {
+      console.error("Payment verification failed:", err);
+      toast.error("Failed to verify payment.");
+    } finally {
+      setVerifyingPaymentId(null);
+    }
+  };
+
   useEffect(() => {
     fetchRequests();
+    fetchPendingPayments();
   }, []);
 
   const formatDate = (timestamp) => {
@@ -263,6 +301,71 @@ const AdminDashboard = () => {
         </div>
       </div>
 
+      {/* Pending Payments Section */}
+      {pendingPayments.length > 0 && (
+        <div className="bg-white rounded-xl shadow-lg border">
+          <div className="p-6 border-b border-slate-200">
+            <h2 className="text-xl font-semibold text-slate-900">
+              Pending Payment Verifications
+            </h2>
+            <p className="text-slate-600 mt-1">
+              Review and verify payment transactions
+            </p>
+          </div>
+          
+          <div className="p-6">
+            <div className="space-y-4">
+              {pendingPayments.map((payment) => (
+                <div
+                  key={payment.id}
+                  className="border border-yellow-200 bg-yellow-50 rounded-lg p-4"
+                >
+                  <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-3 lg:space-y-0">
+                    <div className="flex-1">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                        <div>
+                          <span className="font-medium text-slate-700">Transaction ID:</span>
+                          <p className="text-slate-900 font-mono">{payment.transaction_id}</p>
+                        </div>
+                        <div>
+                          <span className="font-medium text-slate-700">Amount:</span>
+                          <p className="text-slate-900">₹{payment.amount}</p>
+                        </div>
+                        <div>
+                          <span className="font-medium text-slate-700">Request ID:</span>
+                          <p className="text-slate-900">#{payment.request_id}</p>
+                        </div>
+                      </div>
+                      <div className="mt-2 text-xs text-slate-600">
+                        Submitted: {formatDate(payment.created_at)}
+                      </div>
+                    </div>
+                    
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={() => verifyPayment(payment.id, true)}
+                        disabled={verifyingPaymentId === payment.id}
+                        className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors duration-200 disabled:opacity-50"
+                      >
+                        {verifyingPaymentId === payment.id ? "Processing..." : "Approve"}
+                      </button>
+                      <button
+                        onClick={() => verifyPayment(payment.id, false)}
+                        disabled={verifyingPaymentId === payment.id}
+                        className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg transition-colors duration-200 disabled:opacity-50"
+                      >
+                        Reject
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Request Management Section */}
       <div className="bg-white rounded-xl shadow-lg border">
         {loading ? (
           <div className="flex justify-center items-center py-24">

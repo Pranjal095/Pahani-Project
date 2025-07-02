@@ -87,7 +87,31 @@ const RequestForm = () => {
           },
         }
       );
-      setUserRequests(res.data);
+      
+      // Fetch payment status for each processed request
+      const requestsWithPaymentStatus = await Promise.all(
+        res.data.map(async (req) => {
+          if (req.processed && !req.is_paid) {
+            try {
+              const paymentRes = await axios.get(
+                `${import.meta.env.VITE_BACKEND_URL}/user/payment-status/${req.id}`,
+                {
+                  headers: {
+                    Authorization: `Bearer ${token}`,
+                  },
+                }
+              );
+              return { ...req, payment_status: paymentRes.data.status };
+            } catch (err) {
+              console.error(`Failed to fetch payment status for request ${req.id}:`, err);
+              return { ...req, payment_status: "unknown" };
+            }
+          }
+          return req;
+        })
+      );
+      
+      setUserRequests(requestsWithPaymentStatus);
     } catch (err) {
       console.error("Error fetching your requests", err);
     }
@@ -162,18 +186,27 @@ const RequestForm = () => {
   };
 
   const handlePaymentSubmit = async () => {
-    if (!transactionId.trim()) {
-      alert("Please enter transaction ID");
+    // Trim whitespace and validate transaction ID
+    const trimmedTransactionId = transactionId.trim();
+    
+    if (!trimmedTransactionId) {
+      alert("Please enter a valid transaction ID");
+      return;
+    }
+
+    // Basic validation for transaction ID format (at least 6 characters)
+    if (trimmedTransactionId.length < 6) {
+      alert("Transaction ID must be at least 6 characters long");
       return;
     }
 
     setProcessingPayment(true);
     try {
-      await axios.post(
+      const response = await axios.post(
         `${import.meta.env.VITE_BACKEND_URL}/user/confirm-payment`,
         {
           request_id: selectedRequest.id,
-          transaction_id: transactionId,
+          transaction_id: trimmedTransactionId,
         },
         {
           headers: {
@@ -182,14 +215,35 @@ const RequestForm = () => {
         }
       );
       
-      alert("Payment confirmed! Your documents will be available shortly.");
+      alert(`Payment confirmation submitted successfully! Amount: ₹${response.data.amount}. Your payment is now under verification by the admin.`);
       setShowPaymentModal(false);
       setTransactionId("");
       setSelectedRequest(null);
       await fetchUserRequests();
     } catch (err) {
       console.error("Payment confirmation failed:", err);
-      alert("Payment confirmation failed. Please try again.");
+      let errorMessage = "Payment confirmation failed. Please try again.";
+      
+      if (err.response?.data?.detail) {
+        switch (err.response.data.detail) {
+          case "Request not found":
+            errorMessage = "Request not found. Please try again.";
+            break;
+          case "Request not yet processed":
+            errorMessage = "This request has not been approved yet. Please wait for admin approval.";
+            break;
+          case "Payment already completed":
+            errorMessage = "Payment has already been completed for this request.";
+            break;
+          case "Transaction ID already used":
+            errorMessage = "This transaction ID has already been used. Please use a different transaction ID.";
+            break;
+          default:
+            errorMessage = err.response.data.detail;
+        }
+      }
+      
+      alert(errorMessage);
     } finally {
       setProcessingPayment(false);
     }
@@ -609,18 +663,41 @@ const RequestForm = () => {
                     {req.processed
                       ? req.is_paid
                         ? "Completed"
+                        : req.payment_status === "pending"
+                        ? "Payment Under Verification"
                         : "Ready for Payment"
                       : "Pending Approval"}
                   </span>
                 </div>
                 
-                {req.processed && !req.is_paid && (
+                {req.processed && !req.is_paid && req.payment_status !== "pending" && (
                   <button
                     onClick={() => handleCollectRecords(req)}
                     className="mt-2 px-4 py-2 bg-green-600 text-white text-sm rounded hover:bg-green-700"
                   >
                     Collect Records
                   </button>
+                )}
+
+                {req.processed && req.payment_status === "pending" && (
+                  <div className="mt-2 px-4 py-2 bg-yellow-100 text-yellow-800 text-sm rounded border border-yellow-300">
+                    <div className="flex items-center">
+                      <svg
+                        className="w-4 h-4 mr-2"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth="2"
+                          d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
+                      </svg>
+                      Payment verification in progress
+                    </div>
+                  </div>
                 )}
 
                 <button
@@ -643,8 +720,8 @@ const RequestForm = () => {
       {/* Payment Modal */}
       {showPaymentModal && selectedRequest && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4">
-            <h3 className="text-xl font-bold mb-4">Complete Payment</h3>
+          <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4 shadow-2xl">
+            <h3 className="text-xl font-bold mb-4 text-gray-900">Complete Payment</h3>
             
             <div className="mb-6">
               <p className="text-sm text-gray-600 mb-2">
@@ -670,30 +747,60 @@ const RequestForm = () => {
               </div>
             </div>
 
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+            <div className="mb-6">
+              <label className="block text-sm font-semibold text-gray-700 mb-3">
                 Transaction ID *
               </label>
               <input
                 type="text"
                 value={transactionId}
                 onChange={(e) => setTransactionId(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Enter transaction ID"
+                className="w-full px-4 py-3 border border-gray-300 bg-white text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
+                placeholder="Enter your UPI transaction ID"
+                disabled={processingPayment}
+                required
               />
+              <p className="text-xs text-gray-500 mt-1">
+                Enter the transaction ID received after making the payment
+              </p>
             </div>
 
             <div className="flex space-x-3">
               <button
                 onClick={handlePaymentSubmit}
-                disabled={processingPayment}
-                className={`flex-1 py-2 px-4 rounded ${
-                  processingPayment
+                disabled={processingPayment || !transactionId.trim()}
+                className={`flex-1 py-3 px-4 rounded-lg font-semibold transition-all duration-200 ${
+                  processingPayment || !transactionId.trim()
                     ? "bg-gray-400 cursor-not-allowed"
-                    : "bg-blue-600 hover:bg-blue-700"
-                } text-white font-medium`}
+                    : "bg-blue-600 hover:bg-blue-700 shadow-lg hover:shadow-xl"
+                } text-white`}
               >
-                {processingPayment ? "Processing..." : "Confirm Payment"}
+                {processingPayment ? (
+                  <span className="flex items-center justify-center">
+                    <svg
+                      className="animate-spin h-4 w-4 mr-2"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                        fill="none"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
+                    </svg>
+                    Processing...
+                  </span>
+                ) : (
+                  "Confirm Payment"
+                )}
               </button>
               <button
                 onClick={() => {
@@ -701,7 +808,8 @@ const RequestForm = () => {
                   setTransactionId("");
                   setSelectedRequest(null);
                 }}
-                className="flex-1 py-2 px-4 border border-gray-300 rounded text-gray-700 hover:bg-gray-50"
+                disabled={processingPayment}
+                className="flex-1 py-3 px-4 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-semibold transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Cancel
               </button>
