@@ -16,6 +16,7 @@ const AuthPage = ({ onLogin }) => {
   const [otpSent, setOtpSent] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const handleSendOtp = async () => {
     if (!/^\d{10}$/.test(formData.phone_number)) {
       setError("Enter a valid 10-digit phone number");
@@ -41,6 +42,7 @@ const AuthPage = ({ onLogin }) => {
       [name]: value,
     }));
     if (error) setError("");
+    if (success) setSuccess("");
   };
 
   const validateForm = () => {
@@ -89,6 +91,7 @@ const AuthPage = ({ onLogin }) => {
     e.preventDefault();
     setLoading(true);
     setError("");
+    setSuccess("");
   
     try {
       if (userType === "admin") {
@@ -121,7 +124,7 @@ const AuthPage = ({ onLogin }) => {
             }
           );
           setIsLogin(true); // After signup, switch to login mode
-          setError("Account created. Please sign in.");
+          setSuccess("Account created successfully. Please sign in.");
         }
       } else {
         // 👤 Citizen
@@ -137,7 +140,7 @@ const AuthPage = ({ onLogin }) => {
             }
           );
           setIsLogin(true);
-          setError("Account created. Please login using OTP.");
+          setSuccess("Account created successfully. Please login using OTP.");
           setOtpSent(false);
           setFormData((prev) => ({ ...prev, otp: "" }));
           setLoading(false);
@@ -172,11 +175,11 @@ const AuthPage = ({ onLogin }) => {
       setLoading(false);
     }
   };
-  
 
   const toggleMode = () => {
     setIsLogin(!isLogin);
     setError("");
+    setSuccess("");
     setFormData({
       name: "",
       aadhaar_number: "",
@@ -192,9 +195,8 @@ const AuthPage = ({ onLogin }) => {
       <div className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 text-center">
           <h1 className="text-2xl font-bold text-slate-900">
-            Government of Telangana
+            Vikarabad Pahani Portal
           </h1>
-          <p className="text-lg text-slate-600 mt-1">Land Records Department</p>
           <p className="text-sm text-slate-500 mt-1">Pahani Digital Portal</p>
         </div>
       </div>
@@ -394,6 +396,13 @@ const AuthPage = ({ onLogin }) => {
                 </>
               )}
   
+              {/* Success Display */}
+              {success && (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-green-800 text-sm">
+                  <div>{success}</div>
+                </div>
+              )}
+  
               {/* Error Display */}
               {error && (
                 <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-800 text-sm">
@@ -447,7 +456,6 @@ const AuthPage = ({ onLogin }) => {
       </footer>
     </div>
   );
-  
 };
 
 export default AuthPage;

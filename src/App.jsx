@@ -171,8 +171,7 @@ function App() {
 
       <footer className="bg-gray-100 border-t py-4 text-center text-gray-500 text-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          &copy; {new Date().getFullYear()} Telangana State Land Records
-          Department
+          &copy; {new Date().getFullYear()} Vikarabad Pahani Portal
         </div>
       </footer>
     </div>

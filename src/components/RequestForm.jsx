@@ -147,7 +147,7 @@ const RequestForm = () => {
           <p className="text-lg text-slate-600 max-w-3xl mx-auto leading-relaxed">
             Submit a formal request to access Pahani land records, which include
             detailed information about land ownership, surveys, and history
-            maintained by the Land Records Department.
+            maintained by the Vikarabad Department.
           </p>
         </div>
 
@@ -504,7 +504,7 @@ const RequestForm = () => {
               <p className="text-red-800">
                 There was an error processing your request. Please check your
                 information and try again. If the problem persists, contact the
-                Land Records Department.
+                Vikarabad Department.
               </p>
             </div>
           </div>
