@@ -19,6 +19,16 @@ const RequestForm = () => {
 
   const token = localStorage.getItem("access_token");
 
+  const generateYearOptions = () => {
+    const years = [];
+    for (let year = 1990; year <= 2018; year++) {
+      years.push(year);
+    }
+    return years;
+  };
+
+  const yearOptions = generateYearOptions();
+
   const getAuthHeaders = () => {
     const token = localStorage.getItem("access_token");
     return token ? { Authorization: `Bearer ${token}` } : {};
@@ -303,43 +313,53 @@ const RequestForm = () => {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 mb-3">
-                    From Date *
+                    From Year *
                   </label>
-                  <input
-                    type="number"
+                  <select
                     required
                     value={yearFrom}
                     onChange={(e) => setYearFrom(e.target.value)}
-                    placeholder="e.g., 2010"
-                    min="1900"
-                    max={new Date().getFullYear()}
-                    className="w-full px-4 py-3 border border-slate-300 bg-gray-50 text-slate-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
+                    className="w-full px-4 py-3 border border-slate-300 bg-white text-slate-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
                     disabled={loading}
-                  />
+                  >
+                    <option value="">Select Starting Year</option>
+                    {yearOptions.map((year) => (
+                      <option key={year} value={year}>
+                        {year}
+                      </option>
+                    ))}
+                  </select>
                   <p className="text-xs text-slate-500 mt-1">
-                    Start date for record search
+                    Start year for record search (1990-2018)
                   </p>
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 mb-3">
-                    To Date *
+                    To Year *
                   </label>
-                  <input
-                    type="number"
+                  <select
                     required
-                    min={yearFrom}
                     value={yearTo}
                     onChange={(e) => setYearTo(e.target.value)}
-                    placeholder="e.g., 2023"
-                    className="w-full px-4 py-3 border border-slate-300 bg-gray-50 text-slate-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
-                    disabled={loading}
-                  />
+                    className="w-full px-4 py-3 border border-slate-300 bg-white text-slate-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200 disabled:bg-slate-100 disabled:text-slate-500"
+                    disabled={!yearFrom || loading}
+                  >
+                    <option value="">Select Ending Year</option>
+                    {yearOptions
+                      .filter((year) => year >= parseInt(yearFrom))
+                      .map((year) => (
+                        <option key={year} value={year}>
+                          {year}
+                        </option>
+                      ))}
+                  </select>
                   <p className="text-xs text-slate-500 mt-1">
-                    End date for record search
+                    End year for record search (1990-2018)
                   </p>
                 </div>
               </div>
             </div>
+
             <div>
               <label className="block text-sm font-semibold text-slate-700 mb-3">
                 Survey Number *
@@ -528,7 +548,7 @@ const RequestForm = () => {
                 </div>
                 <div className="text-sm text-gray-700 mt-1">
                   <span className="mr-4">
-                    Dates: {req.from_date} to {req.to_date}
+                    Years: {req.from_year} to {req.to_year}
                   </span>
                   <span>
                     Status:{" "}
