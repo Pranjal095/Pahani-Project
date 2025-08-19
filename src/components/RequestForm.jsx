@@ -186,6 +186,13 @@ const RequestForm = () => {
     setShowPaymentModal(true);
   };
 
+  // Add new function to handle payment redirect
+  const handlePaymentRedirect = () => {
+    window.open('https://example.com', '_blank');
+    
+    alert('You will be redirected to the official payment portal. After completing the payment, please return here to enter your transaction ID.');
+  };
+
   const handlePaymentSubmit = async () => {
     // Trim whitespace and validate transaction ID
     const trimmedTransactionId = transactionId.trim();
@@ -853,8 +860,24 @@ const RequestForm = () => {
                 <strong>Amount:</strong> ₹{calculatePaymentAmount(selectedRequest.from_year, selectedRequest.to_year)}
               </p>
               
+              {/* Add payment redirect button */}
+              <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <h4 className="text-sm font-semibold text-blue-900 mb-2">
+                  Make Payment
+                </h4>
+                <p className="text-sm text-blue-700 mb-3">
+                  Click below to proceed to the official payment portal
+                </p>
+                <button
+                  onClick={handlePaymentRedirect}
+                  className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors duration-200"
+                >
+                  Proceed to Payment Portal
+                </button>
+              </div>
+              
               <div className="text-center mb-4">
-                <p className="text-sm text-gray-600 mb-2">Scan QR Code to Pay:</p>
+                <p className="text-sm text-gray-600 mb-2">Or scan QR Code to Pay:</p>
                 <img 
                   src="/qr.svg" 
                   alt="Payment QR Code" 
@@ -875,12 +898,12 @@ const RequestForm = () => {
                 value={transactionId}
                 onChange={(e) => setTransactionId(e.target.value)}
                 className="w-full px-4 py-3 border border-gray-300 bg-white text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
-                placeholder="Enter your UPI transaction ID"
+                placeholder="Enter your transaction ID after payment"
                 disabled={processingPayment}
                 required
               />
               <p className="text-xs text-gray-500 mt-1">
-                Enter the transaction ID received after making the payment
+                Enter the transaction ID received after making the payment on the official portal
               </p>
             </div>
 
